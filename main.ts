@@ -1,6 +1,15 @@
-import { entryToJSON, keyToJSON, type KvKeyJSON, type KvValueJSON, toKey, toValue } from "@deno/kv-utils/json";
+import {
+  entryMaybeToJSON,
+  entryToJSON,
+  keyToJSON,
+  type KvKeyJSON,
+  type KvValueJSON,
+  toKey,
+  toValue,
+} from "@deno/kv-utils/json";
 import { type BlobJSON, toValue as toBlob } from "@kitsonk/kv-toolbox/blob";
 import { matches } from "@oak/commons/media_types";
+import { effect } from "@preact/signals";
 import { assert } from "@std/assert/assert";
 import { App, staticFiles } from "fresh";
 
@@ -8,6 +17,8 @@ import { type State } from "./utils/fresh.ts";
 import { isBlobJSON, keyCountToResponse, parseQuery, pathToKey, treeToResponse } from "./utils/kv.ts";
 import { getKv } from "./utils/kv_state.ts";
 import { getLogger } from "./utils/logs.ts";
+import { state } from "./utils/state.ts";
+import { addWatch, deleteWatch, parseWatchBody, serialize, watchKv, type WatchNotification } from "./utils/watches.ts";
 
 interface PutBody {
   value: KvValueJSON | BlobJSON;
@@ -31,8 +42,26 @@ function notFound() {
 
 app
   .use(staticFiles())
+  .use(async (ctx) => {
+    performance.mark("request-start");
+    const res = await ctx.next();
+    performance.mark("request-end");
+    performance.measure("request-duration", {
+      start: "request-start",
+      end: "request-end",
+    });
+    const duration = performance.getEntriesByName("request-duration").pop();
+    if (duration) {
+      logger.info("{method} {url} - {status} - {duration}ms", {
+        method: ctx.req.method,
+        url: ctx.req.url,
+        status: res.status,
+        duration: duration.duration.toFixed(2),
+      });
+    }
+    return res;
+  })
   .get("/api/kv{/}?:path*", async ({ req, params: { path = "" } }) => {
-    logger.debug("GET: {path}", { path });
     const prefix = path === "" ? [] : pathToKey(path);
     const kv = await getKv();
     const url = new URL(req.url, import.meta.url);
@@ -78,7 +107,6 @@ app
     }
   })
   .put("/api/kv{/}?:path*", async ({ req, params: { path = "" } }) => {
-    logger.debug("PUT: {path}", { path });
     try {
       const key = pathToKey(path);
       const kv = await getKv();
@@ -148,7 +176,6 @@ app
     }
   })
   .delete("/api/kv{/}?:path*", async ({ req, params: { path = "" } }) => {
-    logger.debug("DELETE: {path}", { path });
     try {
       const kv = await getKv();
       const key = pathToKey(path);
@@ -188,6 +215,79 @@ app
           return Response.json(results, { status: 200, statusText: "OK" });
         }
       }
+    } catch (err) {
+      return Response.json({
+        status: 400,
+        statusText: "Bad Request",
+        error: err instanceof Error
+          ? {
+            name: err.name,
+            message: err.message,
+            stack: err.stack,
+          }
+          : err,
+      }, { status: 400, statusText: "BadRequest" });
+    }
+  })
+  .get("/api/watch/server", ({ req }) => {
+    if (req.headers.get("upgrade") != "websocket") {
+      return new Response(null, { status: 501 });
+    }
+    const { socket, response } = Deno.upgradeWebSocket(req);
+
+    const messages = new ReadableStream<WatchNotification>({
+      start(controller) {
+        effect(() => {
+          watchKv(state.watches.value, controller);
+        });
+        socket.addEventListener("close", () => controller.close());
+      },
+      cancel() {
+        socket.close();
+      },
+    });
+
+    socket.addEventListener("open", async () => {
+      logger.info("WebSocket connection established");
+      for await (const { entries } of messages) {
+        socket.send(JSON.stringify({ entries: entries.map(entryMaybeToJSON) }));
+      }
+    });
+    socket.addEventListener("close", () => {
+      logger.info("WebSocket connection closed");
+    });
+
+    return response;
+  })
+  .get("/api/watch", () => {
+    return Response.json(serialize(state.watches.value));
+  })
+  .put("/api/watch", async ({ req }) => {
+    try {
+      const body = await req.json();
+      const { key } = parseWatchBody(body);
+      state.watches.value = addWatch(key, state.watches.value);
+      return Response.json({ status: 200, statusText: "OK" });
+    } catch (err) {
+      return Response.json({
+        status: 400,
+        statusText: "Bad Request",
+        error: err instanceof Error
+          ? {
+            name: err.name,
+            message: err.message,
+            stack: err.stack,
+          }
+          : err,
+      }, { status: 400, statusText: "BadRequest" });
+    }
+  })
+  .delete("/api/watch", async ({ req }) => {
+    try {
+      const body = await req.json();
+      const { key } = parseWatchBody(body);
+      state.watches.value = deleteWatch(key, state.watches.value);
+      return Response.json({ status: 200, statusText: "OK" });
     } catch (err) {
       return Response.json({
         status: 400,

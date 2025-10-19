@@ -12,7 +12,7 @@ import { isEditable } from "../utils/kv.ts";
 import { addNotification } from "../utils/state.ts";
 
 async function watchEntry(key: KvKeyJSON) {
-  const res = await fetch(new URL("/api/watch", import.meta.url), {
+  const res = await fetch("/api/watch", {
     method: "PUT",
     body: JSON.stringify({ key }),
     headers: {

@@ -7,7 +7,7 @@ export default function Local() {
   return (
     <AppFrame selected="watches">
       <Head>
-        <title>Watches &mdash; kview</title>
+        <title>Watches &mdash; kview-panel</title>
       </Head>
       <Watches />
     </AppFrame>

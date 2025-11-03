@@ -1,3 +1,5 @@
+import "@std/dotenv/load";
+
 import {
   entryMaybeToJSON,
   entryToJSON,
@@ -12,8 +14,6 @@ import { matches } from "@oak/commons/media_types";
 import { effect } from "@preact/signals";
 import { assert } from "@std/assert/assert";
 import { App, staticFiles } from "fresh";
-
-import "@std/dotenv/load";
 
 import { type State } from "./utils/fresh.ts";
 import { isBlobJSON, keyCountToResponse, parseQuery, pathToKey, treeToResponse } from "./utils/kv.ts";

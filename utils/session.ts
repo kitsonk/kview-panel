@@ -6,7 +6,8 @@ import type { State } from "./fresh.ts";
 import { getLogger } from "./logs.ts";
 
 export const KVIEW_PANEL_HASH = "KVIEW_PANEL_HASH";
-const HASH = Deno.env.get(KVIEW_PANEL_HASH) ?? "";
+const HASH = Deno.env.get(KVIEW_PANEL_HASH);
+const DEFAULT_HASH = "d7b481f9eeb600d71c58c3b2823df6e38c44e6781caf16f803c3b1a92c175d2c";
 
 const logger = getLogger(["kview-panel", "utils", "session"]);
 
@@ -27,12 +28,15 @@ export async function authenticate(
   username: File | string | null,
   password: File | string | null,
 ): Promise<string | null> {
-  logger.debug("Authenticating user");
   if (typeof username !== "string" || typeof password !== "string") {
     return null;
   }
+  if (!HASH) {
+    logger.warn("{KVIEW_PANEL_HASH} not set in environment, using default credentials", { KVIEW_PANEL_HASH });
+  }
+  logger.debug("Authenticating user");
   const hash = await hashUsernamePassword(username, password);
-  if (hash === HASH) {
+  if ((HASH && hash === HASH) || (!HASH && hash === DEFAULT_HASH)) {
     logger.info("Authentication successful for user: {username}", { username });
     return createSession();
   }

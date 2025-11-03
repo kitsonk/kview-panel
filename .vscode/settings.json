@@ -14,7 +14,16 @@
   "[javascript]": {
     "editor.defaultFormatter": "denoland.vscode-deno"
   },
-  "css.customData": [
-    ".vscode/tailwind.json"
+  "files.associations": {
+    "*.css": "tailwindcss"
+  },
+  "tailwindCSS.experimental.configFile": "src/styles/app.css",
+  "cSpell.words": [
+    "Fira",
+    "grayscale",
+    "kview",
+    "Nanum",
+    "octicon",
+    "oklch"
   ]
 }

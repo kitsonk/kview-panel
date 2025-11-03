@@ -205,7 +205,7 @@ dialog::backdrop {
 }
 
 .json .string {
-  @apply whitespace-pre-wrap break-words text-blue-700 dark:text-blue-300;
+  @apply whitespace-pre-wrap wrap-break-word text-blue-700 dark:text-blue-300;
 }
 
 .json .true {

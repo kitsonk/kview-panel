@@ -1,8 +1,6 @@
-import "@std/dotenv/load";
-
 import { configure, getConsoleSink, getLogger } from "@logtape/logtape";
 
-const lowestLevel = (Deno.env.get("LOG_LEVEL") ?? "debug") as "debug" | "info" | "warning" | "error" | "fatal";
+const lowestLevel = (Deno.env.get("LOG_LEVEL") ?? "warning") as "debug" | "info" | "warning" | "error" | "fatal";
 
 const logger = getLogger("kview-panel");
 

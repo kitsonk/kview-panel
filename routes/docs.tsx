@@ -1,15 +1,14 @@
 import { Head } from "fresh/runtime";
 
 import { AppFrame } from "../components/AppFrame.tsx";
-import Watches from "../islands/Watches.tsx";
 
 export default function Local() {
   return (
-    <AppFrame selected="watches">
+    <AppFrame selected="docs">
       <Head>
-        <title>Watches &mdash; kview panel</title>
+        <title>Documentation &mdash; kview panel</title>
       </Head>
-      <Watches />
+      <div>documentation</div>
     </AppFrame>
   );
 }

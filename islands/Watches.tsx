@@ -35,7 +35,7 @@ if (IS_BROWSER) {
   url.protocol = url.protocol === "http:" ? "ws:" : "wss:";
   const ws = new WebSocket(url);
   ws.addEventListener("open", () => {
-    console.log("WebSocket connection established for watches.");
+    console.log("Connected to watch server");
   });
   ws.addEventListener("message", ({ data }) => {
     const message: WatchNotification = JSON.parse(data);

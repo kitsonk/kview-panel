@@ -13,10 +13,13 @@ import { effect } from "@preact/signals";
 import { assert } from "@std/assert/assert";
 import { App, staticFiles } from "fresh";
 
+import "@std/dotenv/load";
+
 import { type State } from "./utils/fresh.ts";
 import { isBlobJSON, keyCountToResponse, parseQuery, pathToKey, treeToResponse } from "./utils/kv.ts";
 import { getKv } from "./utils/kv_state.ts";
 import { getLogger } from "./utils/logs.ts";
+import { sessionMiddleware } from "./utils/session.ts";
 import { state } from "./utils/state.ts";
 import { addWatch, deleteWatch, parseWatchBody, serialize, watchKv, type WatchNotification } from "./utils/watches.ts";
 
@@ -41,26 +44,29 @@ function notFound() {
 }
 
 app
-  .use(staticFiles())
-  .use(async (ctx) => {
-    performance.mark("request-start");
-    const res = await ctx.next();
-    performance.mark("request-end");
-    performance.measure("request-duration", {
-      start: "request-start",
-      end: "request-end",
-    });
-    const duration = performance.getEntriesByName("request-duration").pop();
-    if (duration) {
-      logger.info("{method} {url} - {status} - {duration}ms", {
-        method: ctx.req.method,
-        url: ctx.req.url,
-        status: res.status,
-        duration: duration.duration.toFixed(2),
+  .use(
+    staticFiles(),
+    async (ctx) => {
+      performance.mark("request-start");
+      const res = await ctx.next();
+      performance.mark("request-end");
+      performance.measure("request-duration", {
+        start: "request-start",
+        end: "request-end",
       });
-    }
-    return res;
-  })
+      const duration = performance.getEntriesByName("request-duration").pop();
+      if (duration) {
+        logger.info("{method} {url} - {status} - {duration}ms", {
+          method: ctx.req.method,
+          url: ctx.req.url,
+          status: res.status,
+          duration: duration.duration.toFixed(2),
+        });
+      }
+      return res;
+    },
+    sessionMiddleware,
+  )
   .get("/api/kv{/}?:path*", async ({ req, params: { path = "" } }) => {
     const prefix = path === "" ? [] : pathToKey(path);
     const kv = await getKv();

@@ -27,7 +27,7 @@ export function AppFrame(
                 alt="kview Logo"
               />
               <span class="self-center text-2xl font-semibold whitespace-nowrap dark:text-white">
-                kview
+                kview panel
               </span>
             </a>
           </div>
@@ -53,6 +53,9 @@ export function AppFrame(
             </NavItem>
             <NavItem icon="task" href="/job" selected={selected === "jobs"}>
               Jobs
+            </NavItem>
+            <NavItem icon="logout" href="/logout">
+              Logout
             </NavItem>
           </ul>
           <ul class="pt-5 mt-5 space-y-2 border-t border-gray-200 dark:border-gray-700">
